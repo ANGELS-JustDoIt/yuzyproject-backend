@@ -21,3 +21,13 @@ export async function createUser(user) {
     )
     .then((result) => result[0].insertId);
 }
+
+// user_id로 사용자 조회
+export async function findById(userIdx) {
+  return db
+    .execute(
+      "select user_idx, email, user_name, hope_job, created_at from members where user_idx=?",
+      [userIdx]
+    )
+    .then((result) => result[0][0]);
+}

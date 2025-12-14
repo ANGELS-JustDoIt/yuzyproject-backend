@@ -3,8 +3,8 @@ import * as bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { config } from "../config.mjs";
 
-async function createJwtToken(idx) {
-  return jwt.sign({ idx }, config.jwt.secretKey, {
+async function createJwtToken(user_idx) {
+  return jwt.sign({ user_idx }, config.jwt.secretKey, {
     expiresIn: config.jwt.expiresInSec,
   });
 }
