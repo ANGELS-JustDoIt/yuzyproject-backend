@@ -10,22 +10,20 @@ async function createJwtToken(idx) {
 }
 
 export async function signup(req, res, next) {
-  const { userid, password, name, email, url } = req.body;
+  const { email, password, userName } = req.body;
 
-  const found = await authRepository.findByUserid(userid);
+  const found = await authRepository.findByUserid(email);
   if (found) {
     return res.status(409).json({
-      message: `${userid}는 이미 사용중인 아이디이므로 사용할 수 없습니다`,
+      message: `${email}는 이미 사용중인 e-mail 입니다.`,
     });
   }
 
   const hashed = bcrypt.hashSync(password, config.bcrypt.saltRounds);
   const user = await authRepository.createUser({
-    userid,
-    password: hashed,
-    name,
     email,
-    url,
+    password: hashed,
+    userName,
   });
 
   //   const user = await authRepository.createUser(userid, password, name, email);
@@ -34,16 +32,17 @@ export async function signup(req, res, next) {
   res.status(201).json({ token, user });
 }
 export async function login(req, res, next) {
-  const { userid, password } = req.body;
-  const user = await authRepository.findByUserid(userid);
+  const { email, password } = req.body;
+  const user = await authRepository.findByUserid(email);
   if (!user) {
-    res.status(401).json(`${userid} 를 찾을 수 없음`);
+    res.status(401).json(`${email} 를 찾을 수 없음`);
   }
   const isValidPassword = await bcrypt.compare(password, user.password);
   if (!isValidPassword) {
     return res.status(401).json({ message: `아이디 또는 비밀번호 확인` });
   }
 
-  const token = await createJwtToken(user.user_id);
+  const token = await createJwtToken(user.user_idx);
+  console.log(user);
   res.status(200).json({ token, user });
 }

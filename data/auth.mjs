@@ -1,22 +1,23 @@
 import { db } from "../db/database.mjs";
 
-export async function findByUserid(userid) {
+export async function findByUserid(email) {
   return db
-    .execute("select id, user_id, password from users where user_id=?", [
-      userid,
-    ])
+    .execute(
+      "select user_idx, email, password, user_name, hope_job, created_at from members where email=?",
+      [email]
+    )
     .then((result) => {
-      console.log(result);
       return result[0][0];
     });
 }
 
 export async function createUser(user) {
-  const { userid, password, name, email, url } = user;
+  const { email, password, userName } = user;
+  console.log(user);
   return db
     .execute(
-      "insert into users (user_id, password, name, email, url) values (?, ?, ?, ?, ?)",
-      [userid, password, name, email, url]
+      "insert into members ( email, password, user_name) values (?, ?, ?)",
+      [email, password, userName]
     )
     .then((result) => result[0].insertId);
 }
