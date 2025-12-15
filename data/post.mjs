@@ -1,11 +1,17 @@
 import { db } from "../db/database.mjs";
 
 // 포스트를 작성
-export async function create(title, type, content, userId, mainImageId = null) {
+export async function create(
+  title,
+  type,
+  content,
+  userIdx,
+  mainImageId = null
+) {
   return db
     .execute(
-      "insert into posts (title, type, content, user_id, main_image_id) values (?, ?, ?, ?, ?)",
-      [title, type, content, userId, mainImageId]
+      "insert into posts (title, type, content, user_idx, main_image_id) values (?, ?, ?, ?, ?)",
+      [title, type, content, userIdx, mainImageId]
     )
     .then((result) => getById(result[0].insertId));
 }
