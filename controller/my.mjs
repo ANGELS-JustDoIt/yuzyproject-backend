@@ -119,11 +119,10 @@ export async function getScraps(req, res, next) {
     const userIdx = req.user_idx;
     const scraps = await myRepository.getScraps(userIdx);
 
-    // 프론트엔드 호환성을 위해 user_name을 user_id로, scrap_id를 scrab_id로 매핑
+    // 프론트엔드 호환성을 위해 user_name을 user_id로 매핑
     const scrapsWithUserId = scraps.map((item) => ({
       ...item,
       user_id: item.user_name,
-      scrab_id: item.scrap_id, // 프론트엔드에서 scrab_id를 기대함
     }));
 
     res.status(200).json({
