@@ -43,6 +43,15 @@ export async function login(req, res, next) {
   }
 
   const token = await createJwtToken(user.user_idx);
+
+  // 잔디에 로그인 활동 기록
+  try {
+    await authRepository.recordLoginGrass(user.user_idx);
+  } catch (grassError) {
+    // 잔디 기록 실패해도 로그인은 성공 처리
+    console.error("잔디 기록 에러:", grassError);
+  }
+
   console.log(user);
   res.status(200).json({ token, user });
 }
