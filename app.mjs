@@ -3,6 +3,7 @@ import authRouter from "./router/auth.mjs";
 import { config } from "./config.mjs";
 import postRouter from "./router/post.mjs";
 import myRouter from "./router/my.mjs";
+import scheduleRouter from "./router/schedule.mjs";
 
 const app = express();
 
@@ -27,10 +28,12 @@ app.use((req, res, next) => {
 
 app.use("/auth", express.json());
 app.use("/my", express.json());
+app.use("/schedule", express.json());
 
 app.use("/post", postRouter);
 app.use("/auth", authRouter);
 app.use("/my", myRouter);
+app.use("/schedule", scheduleRouter);
 
 app.use((req, res, next) => {
   res.sendStatus(404);
