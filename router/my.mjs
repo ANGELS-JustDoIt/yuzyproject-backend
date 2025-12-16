@@ -1,6 +1,7 @@
 import express from "express";
 import { isAuth } from "../middleware/auth.mjs";
 import * as myController from "../controller/my.mjs";
+import * as scheduleController from "../controller/schedule.mjs";
 import { body } from "express-validator";
 import { validate } from "../middleware/validator.mjs";
 
@@ -41,5 +42,28 @@ router.patch("/notifications/:id/read", myController.markNotificationRead);
 
 // DELETE /my/notifications/:id - 알림 삭제
 router.delete("/notifications/:id", myController.deleteNotification);
+
+// 일정 등록 검증
+const validateSchedule = [
+  body("title").trim().notEmpty().withMessage("제목을 입력하세요"),
+  body("scheduleDate")
+    .trim()
+    .notEmpty()
+    .withMessage("일정 날짜를 입력하세요")
+    .matches(/^\d{4}-\d{2}-\d{2}$/)
+    .withMessage("날짜 형식이 올바르지 않습니다. (YYYY-MM-DD)"),
+  body("description").optional().trim(),
+  validate,
+];
+
+// POST /my/schedule - 일정 등록
+router.post("/schedule", validateSchedule, scheduleController.createSchedule);
+
+// GET /my/schedule - 일정 조회
+// Query parameters:
+// - date: 특정 날짜 조회 (YYYY-MM-DD)
+// - startDate, endDate: 날짜 범위 조회 (YYYY-MM-DD)
+// - 없으면: 전체 조회
+router.get("/schedule", scheduleController.getSchedules);
 
 export default router;
