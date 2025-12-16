@@ -26,7 +26,7 @@ function toCamelCase(obj) {
 // 사용자 프로필 조회
 export async function getProfile(req, res, next) {
   try {
-    const userIdx = req.user_idx;
+    const userIdx = req.userIdx;
     const profile = await myRepository.getUserProfile(userIdx);
     const stats = await myRepository.getUserStats(userIdx);
 
@@ -55,7 +55,7 @@ export async function getProfile(req, res, next) {
 // 사용자 프로필 업데이트
 export async function updateProfile(req, res, next) {
   try {
-    const userIdx = req.user_idx;
+    const userIdx = req.userIdx;
     const { email, hope_job, password } = req.body;
 
     const updateData = {};
@@ -92,7 +92,7 @@ export async function updateProfile(req, res, next) {
 // 잔디 데이터 조회
 export async function getGrass(req, res, next) {
   try {
-    const userIdx = req.user_idx;
+    const userIdx = req.userIdx;
     const grassData = await myRepository.getGrassData(userIdx);
 
     // 프론트엔드 호환성을 위해 user_name을 user_id로 매핑
@@ -116,7 +116,7 @@ export async function getGrass(req, res, next) {
 // 스크랩 조회
 export async function getScraps(req, res, next) {
   try {
-    const userIdx = req.user_idx;
+    const userIdx = req.userIdx;
     const scraps = await myRepository.getScraps(userIdx);
 
     // 프론트엔드 호환성을 위해 user_name을 user_id로 매핑
@@ -140,7 +140,7 @@ export async function getScraps(req, res, next) {
 // 알림 조회
 export async function getNotifications(req, res, next) {
   try {
-    const userIdx = req.user_idx;
+    const userIdx = req.userIdx;
     const notifications = await myRepository.getNotifications(userIdx);
 
     // 프론트엔드 호환성을 위해 user_name을 user_id로 매핑
@@ -164,7 +164,7 @@ export async function getNotifications(req, res, next) {
 // 알림을 읽음으로 표시
 export async function markNotificationRead(req, res, next) {
   try {
-    const userIdx = req.user_idx;
+    const userIdx = req.userIdx;
     const notiId = req.params.id;
 
     const success = await myRepository.markNotificationAsRead(notiId, userIdx);

@@ -19,13 +19,13 @@ function toCamelCase(obj) {
 export async function createPost(req, res, next) {
   try {
     const { title, type, content } = req.body;
-    const user_idx = req.user_idx; // 인증 미들웨어에서 설정된 user ID
+    const userIdx = req.userIdx; // 인증 미들웨어에서 설정된 user ID
     // 1. 먼저 포스트 생성 (main_image_id는 null로 시작)
     const post = await postRepository.create(
       title,
       type,
       content,
-      user_idx,
+      userIdx,
       null
     );
     const boardId = post.board_id;
@@ -41,7 +41,7 @@ export async function createPost(req, res, next) {
         boardId,
         filePath,
         mainImageFile.originalname,
-        user_idx,
+        userIdx,
         seq
       );
       seq++;
@@ -54,9 +54,9 @@ export async function createPost(req, res, next) {
         await fileRepository.createFile(
           "post",
           boardId,
-          filePath,
-          file.originalname,
-          user_idx,
+        filePath,
+        file.originalname,
+        userIdx,
           seq
         );
         seq++; // seq가 하나씩 추가되는 방식으로 (동기 방식으로 변경):sync/ ** 비동기가 async (한꺼번에 동시처리)
