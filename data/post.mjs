@@ -102,3 +102,20 @@ export async function getPosts({ page = 1, limit = 10, type, keyword }) {
 
   return rows;
 }
+
+// 잔디에 게시글 작성 활동 기록
+// 같은 날 여러 번 게시글을 작성해도 한 번만 기록됨 (UNIQUE 제약조건으로 인해)
+export async function recordBoardGrass(userIdx) {
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD 형식
+
+  // INSERT 시도, 이미 기록이 있으면 UPDATE (is_board = 1로 설정)
+  // 같은 날 여러 게시글을 작성해도 안전하게 처리됨
+  return db
+    .execute(
+      `INSERT INTO grass (grass_date, user_idx, is_board) 
+       VALUES (?, ?, 1)
+       ON DUPLICATE KEY UPDATE is_board = 1`,
+      [today, userIdx]
+    )
+    .then((result) => result[0]);
+}

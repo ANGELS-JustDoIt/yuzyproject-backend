@@ -54,9 +54,9 @@ export async function createPost(req, res, next) {
         await fileRepository.createFile(
           "post",
           boardId,
-        filePath,
-        file.originalname,
-        userIdx,
+          filePath,
+          file.originalname,
+          userIdx,
           seq
         );
         seq++; // seq가 하나씩 추가되는 방식으로 (동기 방식으로 변경):sync/ ** 비동기가 async (한꺼번에 동시처리)
@@ -65,6 +65,15 @@ export async function createPost(req, res, next) {
 
     // 4. 최종 포스트 정보 조회 (main_image_id 포함)
     const finalPost = await postRepository.getById(boardId);
+
+    // 잔디에 게시글 작성 활동 기록
+    try {
+      await postRepository.recordBoardGrass(userIdx);
+    } catch (grassError) {
+      // 잔디 기록 실패해도 포스트 생성은 성공 처리
+      console.error("잔디 기록 에러:", grassError);
+    }
+
     res.status(201).json({
       message: "포스트가 성공적으로 생성되었습니다.",
       post: toCamelCase(finalPost),
@@ -94,7 +103,7 @@ export async function updatePost(req, res, next) {
     if (!existingPost) {
       return res.status(404).json({ message: "포스트를 찾을 수 없습니다." });
     }
-  
+
     if (existingPost.user_idx !== userIdx) {
       return res
         .status(403)
@@ -180,7 +189,6 @@ export async function updatePost(req, res, next) {
   }
 }
 
-
 // 게시글 상세 조회
 export async function getPost(req, res, next) {
   try {
@@ -221,7 +229,6 @@ export async function getPost(req, res, next) {
     });
   }
 }
-
 
 // 게시글 목록 조회 (페이지, 타입, 키워드)
 export async function getPosts(req, res, next) {
