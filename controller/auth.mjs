@@ -35,7 +35,7 @@ export async function login(req, res, next) {
   const { email, password } = req.body;
   const user = await authRepository.findByUserid(email);
   if (!user) {
-    res.status(401).json(`${email} 를 찾을 수 없음`);
+    return res.status(401).json({ message: `${email} 를 찾을 수 없음` });
   }
   const isValidPassword = await bcrypt.compare(password, user.password);
   if (!isValidPassword) {

@@ -6,6 +6,23 @@ import myRouter from "./router/my.mjs";
 
 const app = express();
 
+// CORS 설정 - 프론트엔드와의 통신을 위해 필요
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*"); // 개발 환경에서는 모든 origin 허용
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  );
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // OPTIONS 요청 처리 (preflight)
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
+
 // app.use(express.json());   이 서버 전체를 json 전체로 통신하려고 했으나, 게시글에서는 form data를 사용하므로 주석
 
 app.use("/auth", express.json());
