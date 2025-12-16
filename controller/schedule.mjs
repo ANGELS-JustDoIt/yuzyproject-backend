@@ -61,27 +61,14 @@ export async function createSchedule(req, res, next) {
 export async function getSchedules(req, res, next) {
   try {
     const userIdx = req.userIdx;
-    const { startDate, endDate, date } = req.query;
+    const { startDate, endDate } = req.query;
 
-    let schedules;
-
-    // 특정 날짜 조회
-    if (date) {
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dateRegex.test(date)) {
-        return res
-          .status(400)
-          .json({ message: "날짜 형식이 올바르지 않습니다. (YYYY-MM-DD)" });
-      }
-      schedules = await scheduleRepository.getSchedulesByDate(userIdx, date);
-    } else {
-      // 날짜 범위 조회 (또는 전체 조회)
-      schedules = await scheduleRepository.getSchedules(
-        userIdx,
-        startDate || null,
-        endDate || null
-      );
-    }
+    // 날짜 범위 조회 (또는 전체 조회)
+    const schedules = await scheduleRepository.getSchedules(
+      userIdx,
+      startDate || null,
+      endDate || null
+    );
 
     res.status(200).json({
       schedules: schedules.map((schedule) => toCamelCase(schedule)),

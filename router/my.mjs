@@ -61,7 +61,6 @@ router.post("/schedule", validateSchedule, scheduleController.createSchedule);
 
 // GET /my/schedule - 일정 조회
 // Query parameters:
-// - date: 특정 날짜 조회 (YYYY-MM-DD)
 // - startDate, endDate: 날짜 범위 조회 (YYYY-MM-DD)
 // - 없으면: 전체 조회
 router.get("/schedule", scheduleController.getSchedules);
