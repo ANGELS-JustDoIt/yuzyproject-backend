@@ -130,4 +130,12 @@ router.put(
   postController.updatePost
 );
 
+// 게시글 상세 조회 (인증 필요)
+router.get("/:id", isAuth, postController.getPost);
+
+
+//게시글 목록 조회 (인증 필요)
+router.get("/", isAuth, postController.getPosts);
+
+
 export default router;

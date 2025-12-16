@@ -94,9 +94,7 @@ export async function updatePost(req, res, next) {
     if (!existingPost) {
       return res.status(404).json({ message: "포스트를 찾을 수 없습니다." });
     }
-    console.log("aaaa");
-    console.log(existingPost);
-    console.log(userIdx);
+  
     if (existingPost.user_idx !== userIdx) {
       return res
         .status(403)
@@ -177,6 +175,84 @@ export async function updatePost(req, res, next) {
     });
     res.status(500).json({
       message: "포스트 수정에 실패했습니다.",
+      error: error.message,
+    });
+  }
+}
+
+
+// 게시글 상세 조회
+export async function getPost(req, res, next) {
+  try {
+    const boardId = parseInt(req.params.id);
+    if (!boardId || isNaN(boardId)) {
+      return res
+        .status(400)
+        .json({ message: "유효하지 않은 포스트 ID입니다." });
+    }
+
+    const post = await postRepository.getById(boardId);
+    if (!post) {
+      return res.status(404).json({ message: "포스트를 찾을 수 없습니다." });
+    }
+
+    // 조회수 증가
+    await postRepository.incrementViews(boardId);
+
+    // 파일 목록 조회
+    const files = await fileRepository.getFilesByBoardId("post", boardId);
+
+    // 각 파일에 isMainImage 플래그 추가
+    const filesWithMainFlag = files.map((file) => {
+      const fileObj = toCamelCase(file);
+      fileObj.isMainImage = file.file_key === post.main_image_id;
+      return fileObj;
+    });
+
+    res.status(200).json({
+      post: toCamelCase(post),
+      files: filesWithMainFlag,
+    });
+  } catch (error) {
+    console.error("포스트 조회 에러:", error);
+    res.status(500).json({
+      message: "포스트 조회에 실패했습니다.",
+      error: error.message,
+    });
+  }
+}
+
+
+// 게시글 목록 조회 (페이지, 타입, 키워드)
+export async function getPosts(req, res, next) {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const { type, keyword } = req.query;
+
+    const posts = await postRepository.getPosts({
+      page,
+      limit,
+      type,
+      keyword,
+    });
+    const total = await postRepository.countPosts({ type, keyword });
+
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    res.status(200).json({
+      posts: toCamelCase(posts),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    });
+  } catch (error) {
+    console.error("게시글 목록 조회 에러:", error);
+    res.status(500).json({
+      message: "게시글 목록 조회에 실패했습니다.",
       error: error.message,
     });
   }

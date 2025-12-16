@@ -40,3 +40,65 @@ export async function updateMainImage(boardId, mainImageId) {
     boardId,
   ]);
 }
+
+// 조회수 증가
+export async function incrementViews(boardId) {
+  return db.execute("update posts set views = views+ 1 where board_id = ?", [
+    boardId,
+  ]);
+}
+
+// 게시글 총 개수 (타입/키워드 적용)
+export async function countPosts({ type, keyword }) {
+  let sql = "select count(*) as total from posts";
+  const params = [];
+  const conditions = [];
+
+  if (type) {
+    conditions.push("type = ?");
+    params.push(type);
+  }
+
+  if (keyword) {
+    conditions.push("(title like ? or content like ?)");
+    const like = `%${keyword}%`;
+    params.push(like, like);
+  }
+
+  if (conditions.length > 0) {
+    sql += " where " + conditions.join(" and ");
+  }
+
+  const [rows] = await db.execute(sql, params);
+  return rows[0]?.total ?? 0;
+}
+
+// 게시글 목록 조회 (페이지네이션 + 타입/키워드 검색)
+export async function getPosts({ page = 1, limit = 10, type, keyword }) {
+  const offset = (page - 1) * limit;
+  let sql = "select * from posts";
+  const params = [];
+  const conditions = [];
+
+  if (type) {
+    conditions.push("type = ?");
+    params.push(type);
+  }
+
+  if (keyword) {
+    conditions.push("(title like ? or content like ?)");
+    const like = `%${keyword}%`;
+    params.push(like, like);
+  }
+
+  if (conditions.length > 0) {
+    sql += " where " + conditions.join(" and ");
+  }
+
+  sql += " order by board_id desc limit ? offset ?";
+  params.push(limit, offset);
+
+  const [rows] = await db.execute(sql, params);
+
+  return rows;
+}

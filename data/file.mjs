@@ -26,3 +26,6 @@ export async function getFilesByBoardId(boardType, boardId) {
     )
     .then((result) => result[0]);
 }
+
+
+
