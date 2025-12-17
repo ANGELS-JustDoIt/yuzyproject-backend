@@ -2,6 +2,8 @@ import express from "express";
 import { isAuth } from "../middleware/auth.mjs";
 import { uploadPostFiles } from "../middleware/upload.mjs";
 import * as postController from "../controller/post.mjs";
+import * as likeController from "../controller/like.mjs";
+import * as commentController from "../controller/comment.mjs";
 import { body, validationResult } from "express-validator";
 import multer from "multer";
 import fs from "fs";
@@ -116,6 +118,73 @@ router.post(
   postController.createPost // 파일 올리면 실제 db에 insert 해줌
 );
 
+//게시글 목록 조회 (인증 필요)
+router.get("/", isAuth, postController.getPosts);
+
+// 댓글 작성 검증
+const validateComment = [
+  body("content")
+    .trim()
+    .notEmpty()
+    .withMessage("댓글 내용을 입력하세요")
+    .isLength({ min: 1 })
+    .withMessage("댓글 내용은 최소 1자 이상 입력하세요"),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.array()[0].msg });
+    }
+    next();
+  },
+];
+
+// 댓글 작성
+router.post(
+  "/:id/comments",
+  isAuth,
+  express.json(),
+  validateComment,
+  commentController.createComment
+);
+
+// 댓글 목록 조회 (게시글의 모든 댓글)
+router.get("/:id/comments", isAuth, commentController.getComments);
+
+// 댓글 상세 조회
+router.get("/:id/comments/:replyId", isAuth, commentController.getComment);
+
+// 댓글 수정
+router.put(
+  "/:id/comments/:replyId",
+  isAuth,
+  express.json(),
+  validateComment,
+  commentController.updateComment
+);
+
+// 댓글 삭제
+router.delete(
+  "/:id/comments/:replyId",
+  isAuth,
+  commentController.deleteComment
+);
+
+// 댓글 채택 (질문 게시글의 답변 채택)
+router.post(
+  "/:id/comments/:replyId/select",
+  isAuth,
+  commentController.selectComment
+);
+
+// 좋아요 토글 (추가/삭제)
+router.post("/:id/like", isAuth, likeController.toggleLike);
+
+// 좋아요 상태 조회 (현재 사용자의 좋아요 여부 + 개수)
+router.get("/:id/like", isAuth, likeController.getLikeStatus);
+
+// 좋아요 개수만 조회
+router.get("/:id/likes", isAuth, likeController.getLikeCountOnly);
+
 // 포스트 업데이트 (파일 업로드 포함)
 // multipart/form-data 형식으로 요청
 // - title, content (필수) - type은 변경 불가
@@ -132,10 +201,5 @@ router.put(
 
 // 게시글 상세 조회 (인증 필요)
 router.get("/:id", isAuth, postController.getPost);
-
-
-//게시글 목록 조회 (인증 필요)
-router.get("/", isAuth, postController.getPosts);
-
 
 export default router;

@@ -1,5 +1,6 @@
 import * as postRepository from "../data/post.mjs";
 import * as fileRepository from "../data/file.mjs";
+import * as likeRepository from "../data/like.mjs";
 import fs from "fs";
 
 // snake_case를 camelCase로 변환하는 헬퍼 함수
@@ -217,8 +218,14 @@ export async function getPost(req, res, next) {
       return fileObj;
     });
 
+    // 좋아요 개수 조회
+    const likeCount = await likeRepository.getLikeCount("post", boardId);
+
+    const postData = toCamelCase(post);
+    postData.likeCount = likeCount;
+
     res.status(200).json({
-      post: toCamelCase(post),
+      post: postData,
       files: filesWithMainFlag,
     });
   } catch (error) {
@@ -247,8 +254,22 @@ export async function getPosts(req, res, next) {
 
     const totalPages = Math.ceil(total / limit) || 1;
 
+    // 여러 게시글의 좋아요 개수를 한 번에 조회
+    const boardIds = posts.map((post) => post.board_id);
+    const likeCounts = await likeRepository.getLikeCountsByBoardIds(
+      "post",
+      boardIds
+    );
+
+    // 각 게시글에 좋아요 개수 추가
+    const postsWithLikes = posts.map((post) => {
+      const postData = toCamelCase(post);
+      postData.likeCount = likeCounts[post.board_id] || 0;
+      return postData;
+    });
+
     res.status(200).json({
-      posts: toCamelCase(posts),
+      posts: postsWithLikes,
       pagination: {
         page,
         limit,
