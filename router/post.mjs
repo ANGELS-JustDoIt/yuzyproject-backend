@@ -202,4 +202,7 @@ router.put(
 // 게시글 상세 조회 (인증 필요)
 router.get("/:id", isAuth, postController.getPost);
 
+// 게시글 삭제 (인증 필요)
+router.delete("/:id", isAuth, postController.deletePost);
+
 export default router;

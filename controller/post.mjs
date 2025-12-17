@@ -285,3 +285,65 @@ export async function getPosts(req, res, next) {
     });
   }
 }
+
+// 게시글 삭제
+export async function deletePost(req, res, next) {
+  try {
+    const boardId = parseInt(req.params.id);
+    const userIdx = req.userIdx;
+
+    if (!boardId || isNaN(boardId)) {
+      return res
+        .status(400)
+        .json({ message: "유효하지 않은 포스트 ID입니다." });
+    }
+
+    // 포스트 존재 및 소유권 확인
+    const existingPost = await postRepository.getById(boardId);
+    if (!existingPost) {
+      return res.status(404).json({ message: "포스트를 찾을 수 없습니다." });
+    }
+
+    if (existingPost.user_idx !== userIdx) {
+      return res
+        .status(403)
+        .json({ message: "본인의 포스트만 삭제할 수 있습니다." });
+    }
+
+    // 1. 게시글에 연결된 파일 목록 조회 (파일 시스템에서 삭제하기 위해)
+    const files = await fileRepository.getFilesByBoardId("post", boardId);
+
+    // 2. 파일 시스템에서 파일 삭제
+    for (const file of files) {
+      const filePath = `.${file.file_path}`; // /uploads/... -> ./uploads/...
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (fileError) {
+          console.error(`파일 삭제 실패: ${filePath}`, fileError);
+          // 파일 삭제 실패해도 계속 진행
+        }
+      }
+    }
+
+    // 3. 데이터베이스에서 파일 삭제
+    await fileRepository.deleteFilesByBoardId("post", boardId);
+
+    // 4. 게시글 삭제 (댓글과 좋아요는 DB CASCADE 또는 별도 처리 필요)
+    const result = await postRepository.deleteById(boardId, userIdx);
+    console.log(result);
+    if (result[0].affectedRows === 0) {
+      return res.status(404).json({ message: "포스트를 찾을 수 없습니다." });
+    }
+
+    res.status(200).json({
+      message: "포스트가 성공적으로 삭제되었습니다.",
+    });
+  } catch (error) {
+    console.error("포스트 삭제 에러:", error);
+    res.status(500).json({
+      message: "포스트 삭제에 실패했습니다.",
+      error: error.message,
+    });
+  }
+}

@@ -27,5 +27,13 @@ export async function getFilesByBoardId(boardType, boardId) {
     .then((result) => result[0]);
 }
 
+// board_id로 파일 삭제
+export async function deleteFilesByBoardId(boardType, boardId) {
+  return db.execute(
+    "delete from file where board_type = ? and board_id = ?",
+    [boardType, boardId]
+  );
+}
+
 
 

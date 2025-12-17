@@ -119,3 +119,11 @@ export async function recordBoardGrass(userIdx) {
     )
     .then((result) => result[0]);
 }
+
+// 게시글 삭제
+export async function deleteById(boardId, userIdx) {
+  return db.execute(
+    "delete from posts where board_id = ? and user_idx = ?",
+    [boardId, userIdx]
+  );
+}
