@@ -84,6 +84,33 @@ export async function getStudyArchiveImages(archiveId) {
     .then((result) => result[0]);
 }
 
+// 스크랩 생성
+export async function createScrap(boardId, userIdx) {
+  return db
+    .execute("INSERT INTO scrap (board_id, user_idx) VALUES (?, ?)", [
+      boardId,
+      userIdx,
+    ])
+    .then((result) => getScrapById(result[0].insertId));
+}
+
+// 스크랩 ID로 조회
+export async function getScrapById(scrapId) {
+  return db
+    .execute("SELECT * FROM scrap WHERE scrap_id = ?", [scrapId])
+    .then((result) => result[0][0]);
+}
+
+// 스크랩 존재 여부 확인 (중복 체크용)
+export async function getScrapByBoardAndUser(boardId, userIdx) {
+  return db
+    .execute("SELECT * FROM scrap WHERE board_id = ? AND user_idx = ?", [
+      boardId,
+      userIdx,
+    ])
+    .then((result) => result[0][0]);
+}
+
 // 사용자의 스크랩 조회
 export async function getScraps(userIdx) {
   return db

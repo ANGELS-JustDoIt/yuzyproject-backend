@@ -1,6 +1,7 @@
 import * as myRepository from "../data/my.mjs";
 import * as likeRepository from "../data/like.mjs";
 import * as fileRepository from "../data/file.mjs";
+import * as postRepository from "../data/post.mjs";
 import * as bcrypt from "bcrypt";
 import { config } from "../config.mjs";
 
@@ -113,6 +114,59 @@ export async function getGrass(req, res, next) {
     console.error("잔디 데이터 조회 에러:", error);
     res.status(500).json({
       message: "잔디 데이터 조회에 실패했습니다.",
+      error: error.message,
+    });
+  }
+}
+
+// 스크랩 추가
+export async function createScrap(req, res, next) {
+  try {
+    const boardId = parseInt(req.params.id || req.body.boardId);
+    const userIdx = req.userIdx;
+
+    if (!boardId || isNaN(boardId)) {
+      return res
+        .status(400)
+        .json({ message: "유효하지 않은 포스트 ID입니다." });
+    }
+
+    // 포스트 존재 확인
+    const post = await postRepository.getById(boardId);
+    if (!post) {
+      return res.status(404).json({ message: "포스트를 찾을 수 없습니다." });
+    }
+
+    // 중복 스크랩 확인
+    const existingScrap = await myRepository.getScrapByBoardAndUser(
+      boardId,
+      userIdx
+    );
+    if (existingScrap) {
+      return res.status(409).json({
+        message: "이미 스크랩한 포스트입니다.",
+      });
+    }
+
+    // 스크랩 생성
+    const scrap = await myRepository.createScrap(boardId, userIdx);
+
+    res.status(201).json({
+      message: "스크랩이 성공적으로 추가되었습니다.",
+      scrap: toCamelCase(scrap),
+    });
+  } catch (error) {
+    console.error("스크랩 추가 에러:", error);
+
+    // 중복 키 에러 처리
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        message: "이미 스크랩한 포스트입니다.",
+      });
+    }
+
+    res.status(500).json({
+      message: "스크랩 추가에 실패했습니다.",
       error: error.message,
     });
   }
