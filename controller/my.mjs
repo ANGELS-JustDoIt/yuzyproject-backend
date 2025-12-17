@@ -1,4 +1,5 @@
 import * as myRepository from "../data/my.mjs";
+import * as likeRepository from "../data/like.mjs";
 import * as bcrypt from "bcrypt";
 import { config } from "../config.mjs";
 
@@ -95,11 +96,14 @@ export async function getGrass(req, res, next) {
     const userIdx = req.userIdx;
     const grassData = await myRepository.getGrassData(userIdx);
 
-    // 프론트엔드 호환성을 위해 user_name을 user_id로 매핑
-    const grassDataWithUserId = grassData.map((item) => ({
-      ...item,
-      user_id: item.user_name,
-    }));
+    // 프론트엔드 호환성을 위해 user_name을 user_id로 매핑하고 userName 제거
+    const grassDataWithUserId = grassData.map((item) => {
+      const { user_name, ...rest } = item;
+      return {
+        ...rest,
+        user_id: user_name,
+      };
+    });
 
     res.status(200).json({
       grass: toCamelCase(grassDataWithUserId),
@@ -119,14 +123,33 @@ export async function getScraps(req, res, next) {
     const userIdx = req.userIdx;
     const scraps = await myRepository.getScraps(userIdx);
 
-    // 프론트엔드 호환성을 위해 user_name을 user_id로 매핑
-    const scrapsWithUserId = scraps.map((item) => ({
-      ...item,
-      user_id: item.user_name,
-    }));
+    // 스크랩이 없는 경우 빈 배열 반환
+    if (!scraps || scraps.length === 0) {
+      return res.status(200).json({
+        scraps: [],
+      });
+    }
+
+    // 여러 게시글의 좋아요 개수를 한 번에 조회
+    const boardIds = scraps.map((scrap) => scrap.board_id);
+    const likeCounts = await likeRepository.getLikeCountsByBoardIds(
+      "post",
+      boardIds
+    );
+
+    // 프론트엔드 호환성을 위해 user_name을 user_id로 매핑하고 좋아요 개수 추가
+    const scrapsWithDetails = scraps.map((item) => {
+      const scrapData = {
+        ...item,
+        user_id: item.user_name,
+        post_user_id: item.post_user_name,
+        likeCount: likeCounts[item.board_id] || 0,
+      };
+      return scrapData;
+    });
 
     res.status(200).json({
-      scraps: toCamelCase(scrapsWithUserId),
+      scraps: toCamelCase(scrapsWithDetails),
     });
   } catch (error) {
     console.error("스크랩 조회 에러:", error);

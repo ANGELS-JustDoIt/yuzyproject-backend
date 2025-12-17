@@ -66,7 +66,11 @@ router.post("/schedule", validateSchedule, scheduleController.createSchedule);
 router.get("/schedule", scheduleController.getSchedules);
 
 // PUT /my/schedule/:id - 일정 수정
-router.put("/schedule/:id", validateSchedule, scheduleController.updateSchedule);
+router.put(
+  "/schedule/:id",
+  validateSchedule,
+  scheduleController.updateSchedule
+);
 
 // DELETE /my/schedule/:id - 일정 삭제
 router.delete("/schedule/:id", scheduleController.deleteSchedule);
