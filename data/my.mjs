@@ -100,6 +100,7 @@ export async function getScraps(userIdx) {
         p.user_idx as post_user_idx,
         p.views,
         p.is_solved,
+        p.main_image_id,
         p.created_at as post_created_at,
         p.updated_at as post_updated_at,
         pm.user_name as post_user_name

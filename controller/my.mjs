@@ -1,5 +1,6 @@
 import * as myRepository from "../data/my.mjs";
 import * as likeRepository from "../data/like.mjs";
+import * as fileRepository from "../data/file.mjs";
 import * as bcrypt from "bcrypt";
 import { config } from "../config.mjs";
 
@@ -137,16 +138,39 @@ export async function getScraps(req, res, next) {
       boardIds
     );
 
-    // 프론트엔드 호환성을 위해 user_name을 user_id로 매핑하고 좋아요 개수 추가
-    const scrapsWithDetails = scraps.map((item) => {
-      const scrapData = {
-        ...item,
-        user_id: item.user_name,
-        post_user_id: item.post_user_name,
-        likeCount: likeCounts[item.board_id] || 0,
-      };
-      return scrapData;
-    });
+    // 각 포스트의 파일 목록 조회
+    const filesMap = {};
+    for (const boardId of boardIds) {
+      try {
+        const files = await fileRepository.getFilesByBoardId("post", boardId);
+        filesMap[boardId] = files || [];
+      } catch (error) {
+        console.error(`파일 조회 실패 (board_id: ${boardId}):`, error);
+        filesMap[boardId] = [];
+      }
+    }
+
+    // 프론트엔드 호환성을 위해 user_name을 user_id로 매핑하고 상세 정보 추가
+    const scrapsWithDetails = await Promise.all(
+      scraps.map(async (item) => {
+        const files = filesMap[item.board_id] || [];
+
+        // 각 파일에 isMainImage 플래그 추가
+        const filesWithMainFlag = files.map((file) => {
+          const fileObj = toCamelCase(file);
+          fileObj.isMainImage = file.file_key === item.main_image_id;
+          return fileObj;
+        });
+
+        const scrapData = {
+          ...item,
+          likeCount: likeCounts[item.board_id] || 0,
+          files: filesWithMainFlag,
+          mainImageId: item.main_image_id,
+        };
+        return scrapData;
+      })
+    );
 
     res.status(200).json({
       scraps: toCamelCase(scrapsWithDetails),
