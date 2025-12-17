@@ -65,4 +65,10 @@ router.post("/schedule", validateSchedule, scheduleController.createSchedule);
 // - 없으면: 전체 조회
 router.get("/schedule", scheduleController.getSchedules);
 
+// PUT /my/schedule/:id - 일정 수정
+router.put("/schedule/:id", validateSchedule, scheduleController.updateSchedule);
+
+// DELETE /my/schedule/:id - 일정 삭제
+router.delete("/schedule/:id", scheduleController.deleteSchedule);
+
 export default router;
