@@ -95,8 +95,12 @@ export async function getPosts({ page = 1, limit = 10, type, keyword }) {
     sql += " where " + conditions.join(" and ");
   }
 
-  sql += " order by board_id desc limit ? offset ?";
-  params.push(limit, offset);
+  // MySQL 드라이버에서 limit/offset에 바인딩 파라미터를 사용할 때
+  // 간헐적으로 `Incorrect arguments to mysqld_stmt_execute` 오류가 발생할 수 있어
+  // 안전하게 숫자로 캐스팅 후 쿼리에 직접 삽입합니다.
+  const safeLimit = Number(limit) || 10;
+  const safeOffset = Number(offset) || 0;
+  sql += ` order by board_id desc limit ${safeLimit} offset ${safeOffset}`;
 
   const [rows] = await db.execute(sql, params);
 
