@@ -123,7 +123,7 @@ router.get("/", isAuth, postController.getPosts);
 
 // 댓글 작성 검증
 const validateComment = [
-  body("content")
+  body("reply")
     .trim()
     .notEmpty()
     .withMessage("댓글 내용을 입력하세요")
@@ -204,5 +204,8 @@ router.get("/:id", isAuth, postController.getPost);
 
 // 게시글 삭제 (인증 필요)
 router.delete("/:id", isAuth, postController.deletePost);
+
+// 게시글의 개별 파일 삭제 (인증 필요)
+router.delete("/:id/files/:fileKey", isAuth, postController.deletePostFile);
 
 export default router;

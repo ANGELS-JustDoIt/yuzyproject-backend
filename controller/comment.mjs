@@ -21,7 +21,7 @@ function toCamelCase(obj) {
 export async function createComment(req, res, next) {
   try {
     const boardId = parseInt(req.params.id);
-    const { content } = req.body;
+    const { reply } = req.body;
     const userIdx = req.userIdx;
 
     if (!boardId || isNaN(boardId)) {
@@ -30,7 +30,7 @@ export async function createComment(req, res, next) {
         .json({ message: "유효하지 않은 포스트 ID입니다." });
     }
 
-    if (!content || content.trim().length === 0) {
+    if (!reply || reply.trim().length === 0) {
       return res.status(400).json({ message: "댓글 내용을 입력하세요." });
     }
 
@@ -47,7 +47,7 @@ export async function createComment(req, res, next) {
     // 댓글 생성
     const comment = await commentRepository.create(
       boardId,
-      content.trim(),
+      reply.trim(),
       userIdx,
       nextSeq
     );
@@ -131,7 +131,7 @@ export async function getComment(req, res, next) {
 export async function updateComment(req, res, next) {
   try {
     const replyId = parseInt(req.params.replyId);
-    const { content } = req.body;
+    const { reply } = req.body;
     const userIdx = req.userIdx;
 
     if (!replyId || isNaN(replyId)) {
@@ -140,7 +140,7 @@ export async function updateComment(req, res, next) {
         .json({ message: "유효하지 않은 댓글 ID입니다." });
     }
 
-    if (!content || content.trim().length === 0) {
+    if (!reply || reply.trim().length === 0) {
       return res.status(400).json({ message: "댓글 내용을 입력하세요." });
     }
 
@@ -159,7 +159,7 @@ export async function updateComment(req, res, next) {
     // 댓글 수정
     const updatedComment = await commentRepository.update(
       replyId,
-      content.trim(),
+      reply.trim(),
       userIdx
     );
 
@@ -200,8 +200,26 @@ export async function deleteComment(req, res, next) {
         .json({ message: "본인의 댓글만 삭제할 수 있습니다." });
     }
 
+    // 잔디 처리에 사용할 댓글 작성 날짜 (YYYY-MM-DD)
+    const createdAt = existingComment.created_at;
+    const createdDate =
+      createdAt instanceof Date
+        ? createdAt.toISOString().split("T")[0]
+        : String(createdAt).split("T")[0];
+
     // 댓글 삭제
     await commentRepository.deleteById(replyId, userIdx);
+
+    // 해당 날짜에 더 이상 댓글이 없으면 잔디(is_reply) 제거
+    try {
+      await commentRepository.clearReplyGrassIfNoCommentsOnDate(
+        userIdx,
+        createdDate
+      );
+    } catch (grassError) {
+      console.error("댓글 삭제 후 잔디 제거 처리 중 에러:", grassError);
+      // 잔디 제거 실패해도 댓글 삭제 자체는 성공으로 처리
+    }
 
     res.status(200).json({
       message: "댓글이 성공적으로 삭제되었습니다.",
@@ -252,22 +270,40 @@ export async function selectComment(req, res, next) {
       return res.status(404).json({ message: "댓글을 찾을 수 없습니다." });
     }
 
+    // 댓글이 해당 게시글에 속한 댓글인지 확인
     if (comment.board_id !== boardId) {
       return res
         .status(400)
         .json({ message: "해당 게시글의 댓글이 아닙니다." });
     }
 
+    // 이미 채택된 댓글인지 확인 (선택사항: 중복 채택 방지)
+    if (comment.is_selected === 1) {
+      return res.status(400).json({
+        message: "이미 채택된 답변입니다.",
+      });
+    }
+
     // 댓글 채택
-    const selectedComment = await commentRepository.selectComment(
+    const result = await commentRepository.selectComment(
       replyId,
       boardId,
       userIdx
     );
 
+    // 채택이 성공적으로 이루어졌는지 확인
+    if (!result || result.is_selected !== 1) {
+      return res.status(500).json({
+        message: "댓글 채택에 실패했습니다.",
+      });
+    }
+
+    // 게시글의 해결 상태를 1로 업데이트 (답변이 채택되었으므로)
+    await postRepository.updateSolvedStatus(boardId, true);
+
     res.status(200).json({
       message: "답변이 채택되었습니다.",
-      comment: toCamelCase(selectedComment),
+      comment: toCamelCase(result),
     });
   } catch (error) {
     console.error("댓글 채택 에러:", error);

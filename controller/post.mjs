@@ -91,7 +91,7 @@ export async function createPost(req, res, next) {
 export async function updatePost(req, res, next) {
   try {
     const boardId = parseInt(req.params.id);
-    const { title, content } = req.body;
+    const { title, content, deleteFileIds } = req.body; // 삭제할 파일 ID 목록 추가
     const userIdx = req.userIdx;
     if (!boardId || isNaN(boardId)) {
       return res
@@ -111,11 +111,52 @@ export async function updatePost(req, res, next) {
         .json({ message: "본인의 포스트만 수정할 수 있습니다." });
     }
 
-    // 1. 포스트 기본 정보 업데이트 (type은 변경 불가)
+    // 1. 삭제할 파일 처리 (요청 본문에 deleteFileIds가 있는 경우)
+    if (deleteFileIds && Array.isArray(deleteFileIds) && deleteFileIds.length > 0) {
+      // 삭제할 파일 ID들을 숫자로 변환
+      const fileIdsToDelete = deleteFileIds
+        .map((id) => parseInt(id))
+        .filter((id) => !isNaN(id));
+
+      if (fileIdsToDelete.length > 0) {
+        // 삭제할 파일 목록 조회 (파일 시스템에서 삭제하기 위해)
+        const filesToDelete = [];
+        for (const fileId of fileIdsToDelete) {
+          const file = await fileRepository.getById(fileId);
+          if (file && file.board_id === boardId && file.board_type === "post") {
+            filesToDelete.push(file);
+          }
+        }
+
+        // 파일 시스템에서 파일 삭제
+        for (const file of filesToDelete) {
+          const filePath = `.${file.file_path}`; // /uploads/... -> ./uploads/...
+          if (fs.existsSync(filePath)) {
+            try {
+              fs.unlinkSync(filePath);
+            } catch (fileError) {
+              console.error(`파일 삭제 실패: ${filePath}`, fileError);
+            }
+          }
+        }
+
+        // 데이터베이스에서 파일 삭제
+        await fileRepository.deleteByIds(fileIdsToDelete);
+
+        // 삭제된 파일이 메인 이미지인 경우 main_image_id를 null로 설정
+        if (
+          existingPost.main_image_id &&
+          fileIdsToDelete.includes(existingPost.main_image_id)
+        ) {
+          await postRepository.updateMainImage(boardId, null);
+        }
+      }
+    }
+
+    // 2. 포스트 기본 정보 업데이트 (type은 변경 불가)
     await postRepository.update(boardId, title, content, userIdx);
 
-    // 기존 파일 목록 조회하여 seq 계산 (files ) -> 파일 추가 하면 seq 번호가 변경되는 것이 아니라 추가 됨. ex: 0,1,2 이미지를 변경하면 3,4,5 가 됨.
-
+    // 기존 파일 목록 조회하여 seq 계산
     const existingFiles = await fileRepository.getFilesByBoardId(
       "post",
       boardId
@@ -127,7 +168,7 @@ export async function updatePost(req, res, next) {
     let seq = maxSeq + 1;
     let mainImageId = existingPost.main_image_id;
 
-    // 2. 메인 이미지 처리 (새로 업로드된 경우)
+    // 3. 메인 이미지 처리 (새로 업로드된 경우)
     if (req.files && req.files.mainImage && req.files.mainImage.length > 0) {
       const mainImageFile = req.files.mainImage[0];
       const filePath = `/uploads/${mainImageFile.filename}`;
@@ -143,7 +184,7 @@ export async function updatePost(req, res, next) {
       await postRepository.updateMainImage(boardId, mainImageId);
     }
 
-    // 3. 첨부 파일들 처리 (새로 추가)
+    // 4. 첨부 파일들 처리 (새로 추가)
     if (req.files && req.files.files && req.files.files.length > 0) {
       for (const file of req.files.files) {
         const filePath = `/uploads/${file.filename}`;
@@ -159,7 +200,7 @@ export async function updatePost(req, res, next) {
       }
     }
 
-    // 4. 최종 포스트 정보 조회 (업데이트된 정보 포함)
+    // 5. 최종 포스트 정보 조회 (업데이트된 정보 포함)
     const finalPost = await postRepository.getById(boardId);
     res.status(200).json({
       message: "포스트가 성공적으로 수정되었습니다.",
@@ -310,6 +351,13 @@ export async function deletePost(req, res, next) {
         .json({ message: "본인의 포스트만 삭제할 수 있습니다." });
     }
 
+    // 잔디 처리에 사용할 게시글 작성 날짜 (YYYY-MM-DD)
+    const createdAt = existingPost.created_at;
+    const createdDate =
+      createdAt instanceof Date
+        ? createdAt.toISOString().split("T")[0]
+        : String(createdAt).split("T")[0];
+
     // 1. 게시글에 연결된 파일 목록 조회 (파일 시스템에서 삭제하기 위해)
     const files = await fileRepository.getFilesByBoardId("post", boardId);
 
@@ -336,6 +384,14 @@ export async function deletePost(req, res, next) {
       return res.status(404).json({ message: "포스트를 찾을 수 없습니다." });
     }
 
+    // 5. 해당 날짜에 더 이상 게시글이 없으면 잔디(is_board) 제거
+    try {
+      await postRepository.clearBoardGrassIfNoPostsOnDate(userIdx, createdDate);
+    } catch (grassError) {
+      console.error("게시글 삭제 후 잔디 제거 처리 중 에러:", grassError);
+      // 잔디 제거 실패해도 게시글 삭제 자체는 성공으로 처리
+    }
+
     res.status(200).json({
       message: "포스트가 성공적으로 삭제되었습니다.",
     });
@@ -343,6 +399,80 @@ export async function deletePost(req, res, next) {
     console.error("포스트 삭제 에러:", error);
     res.status(500).json({
       message: "포스트 삭제에 실패했습니다.",
+      error: error.message,
+    });
+  }
+}
+
+// 게시글의 개별 파일 삭제
+export async function deletePostFile(req, res, next) {
+  try {
+    const boardId = parseInt(req.params.id);
+    const fileKey = parseInt(req.params.fileKey);
+    const userIdx = req.userIdx;
+
+    if (!boardId || isNaN(boardId)) {
+      return res
+        .status(400)
+        .json({ message: "유효하지 않은 포스트 ID입니다." });
+    }
+
+    if (!fileKey || isNaN(fileKey)) {
+      return res
+        .status(400)
+        .json({ message: "유효하지 않은 파일 ID입니다." });
+    }
+
+    // 포스트 존재 및 소유권 확인
+    const post = await postRepository.getById(boardId);
+    if (!post) {
+      return res.status(404).json({ message: "포스트를 찾을 수 없습니다." });
+    }
+
+    if (post.user_idx !== userIdx) {
+      return res
+        .status(403)
+        .json({ message: "본인의 포스트만 수정할 수 있습니다." });
+    }
+
+    // 파일 존재 및 소유권 확인
+    const file = await fileRepository.getById(fileKey);
+    if (!file) {
+      return res.status(404).json({ message: "파일을 찾을 수 없습니다." });
+    }
+
+    if (file.board_id !== boardId || file.board_type !== "post") {
+      return res
+        .status(400)
+        .json({ message: "해당 게시글의 파일이 아닙니다." });
+    }
+
+    // 파일 시스템에서 파일 삭제
+    const filePath = `.${file.file_path}`; // /uploads/... -> ./uploads/...
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch (fileError) {
+        console.error(`파일 삭제 실패: ${filePath}`, fileError);
+        // 파일 시스템 삭제 실패해도 DB 삭제는 진행
+      }
+    }
+
+    // 데이터베이스에서 파일 삭제
+    await fileRepository.deleteById(fileKey);
+
+    // 삭제된 파일이 메인 이미지인 경우 main_image_id를 null로 설정
+    if (post.main_image_id === fileKey) {
+      await postRepository.updateMainImage(boardId, null);
+    }
+
+    res.status(200).json({
+      message: "파일이 성공적으로 삭제되었습니다.",
+    });
+  } catch (error) {
+    console.error("파일 삭제 에러:", error);
+    res.status(500).json({
+      message: "파일 삭제에 실패했습니다.",
       error: error.message,
     });
   }

@@ -124,10 +124,36 @@ export async function recordBoardGrass(userIdx) {
     .then((result) => result[0]);
 }
 
+// 게시글 삭제 시, 해당 날짜에 더 이상 게시글이 없으면 잔디(is_board) 제거
+export async function clearBoardGrassIfNoPostsOnDate(userIdx, targetDate) {
+  // 해당 날짜에 사용자가 작성한 게시글 개수 조회
+  const [rows] = await db.execute(
+    "select count(*) as count from posts where user_idx = ? and date(created_at) = ?",
+    [userIdx, targetDate]
+  );
+  const count = rows[0]?.count ?? 0;
+
+  if (count === 0) {
+    // 더 이상 해당 날짜의 게시글이 없으면 잔디 is_board를 0으로 초기화
+    await db.execute(
+      "update grass set is_board = 0 where user_idx = ? and grass_date = ?",
+      [userIdx, targetDate]
+    );
+  }
+}
+
 // 게시글 삭제
 export async function deleteById(boardId, userIdx) {
   return db.execute(
     "delete from posts where board_id = ? and user_idx = ?",
     [boardId, userIdx]
+  );
+}
+
+// 게시글 해결 상태 업데이트 (답변 채택 시 사용)
+export async function updateSolvedStatus(boardId, isSolved) {
+  return db.execute(
+    "update posts set is_solved = ? where board_id = ?",
+    [isSolved ? 1 : 0, boardId]
   );
 }
