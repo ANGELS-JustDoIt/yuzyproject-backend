@@ -164,6 +164,22 @@ export async function toggleScrap(req, res, next) {
     } else {
       // 스크랩 추가
       const scrap = await myRepository.createScrap(boardId, userIdx);
+
+      // 게시글 작성자에게 알림 생성 (자기 글을 스크랩한 경우는 제외)
+      try {
+        if (post.user_idx && post.user_idx !== userIdx) {
+          await myRepository.createNotification(
+            post.user_idx,
+            "SCRAP",
+            String(boardId),
+            "내 게시글이 스크랩되었습니다."
+          );
+        }
+      } catch (notiError) {
+        console.error("스크랩 알림 생성 에러:", notiError);
+        // 알림 생성 실패해도 스크랩 자체는 성공으로 처리
+      }
+
       res.status(200).json({
         message: "스크랩이 추가되었습니다.",
         isScrapped: true,

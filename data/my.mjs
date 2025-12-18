@@ -117,10 +117,10 @@ export async function getScrapByBoardAndUser(boardId, userIdx) {
 
 // 스크랩 삭제
 export async function deleteScrap(boardId, userIdx) {
-  return db.execute(
-    "DELETE FROM scrap WHERE board_id = ? AND user_idx = ?",
-    [boardId, userIdx]
-  );
+  return db.execute("DELETE FROM scrap WHERE board_id = ? AND user_idx = ?", [
+    boardId,
+    userIdx,
+  ]);
 }
 
 // 사용자의 스크랩 조회
@@ -166,6 +166,25 @@ export async function getNotifications(userIdx) {
       [userIdx]
     )
     .then((result) => result[0]);
+}
+
+// 알림 생성
+// notiType: 알림 유형 (예: 'COMMENT', 'COMMENT_SELECTED', 'SCRAP')
+// notiVal: 관련 엔티티 ID 등 식별값 (예: board_id, reply_id 등 문자열)
+// notiContent: 사용자에게 보여줄 메시지
+export async function createNotification(
+  userIdx,
+  notiType,
+  notiVal,
+  notiContent
+) {
+  return db
+    .execute(
+      `INSERT INTO noti (noti_type, noti_val, noti_content, user_idx) 
+       VALUES (?, ?, ?, ?)`,
+      [notiType, notiVal, notiContent, userIdx]
+    )
+    .then((result) => result[0].insertId);
 }
 
 // 알림을 읽음으로 표시

@@ -1,5 +1,6 @@
 import * as commentRepository from "../data/comment.mjs";
 import * as postRepository from "../data/post.mjs";
+import * as myRepository from "../data/my.mjs";
 
 // snake_case를 camelCase로 변환하는 헬퍼 함수
 function toCamelCase(obj) {
@@ -51,6 +52,21 @@ export async function createComment(req, res, next) {
       userIdx,
       nextSeq
     );
+
+    // 게시글 작성자에게 알림 생성 (본인이 자기 글에 다는 댓글은 제외)
+    if (post.user_idx && post.user_idx !== userIdx) {
+      try {
+        await myRepository.createNotification(
+          post.user_idx,
+          "COMMENT",
+          String(boardId),
+          "내 게시글에 새로운 댓글이 달렸습니다."
+        );
+      } catch (notiError) {
+        console.error("댓글 알림 생성 에러:", notiError);
+        // 알림 생성 실패해도 댓글 작성은 성공으로 처리
+      }
+    }
 
     res.status(201).json({
       message: "댓글이 성공적으로 작성되었습니다.",
@@ -300,6 +316,21 @@ export async function selectComment(req, res, next) {
 
     // 게시글의 해결 상태를 1로 업데이트 (답변이 채택되었으므로)
     await postRepository.updateSolvedStatus(boardId, true);
+
+    // 답변 작성자에게 알림 생성 (게시글 작성자와 동일인인 경우에도 알림을 줄지 여부는 정책에 따라 결정)
+    try {
+      if (comment.user_idx && comment.user_idx !== userIdx) {
+        await myRepository.createNotification(
+          comment.user_idx,
+          "COMMENT_SELECTED",
+          String(boardId),
+          "내 댓글이 채택되었습니다."
+        );
+      }
+    } catch (notiError) {
+      console.error("댓글 채택 알림 생성 에러:", notiError);
+      // 알림 생성 실패해도 채택은 성공으로 처리
+    }
 
     res.status(200).json({
       message: "답변이 채택되었습니다.",
