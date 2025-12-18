@@ -1,4 +1,5 @@
 import express from "express";
+import path from "path";
 import authRouter from "./router/auth.mjs";
 import { config } from "./config.mjs";
 import postRouter from "./router/post.mjs";
@@ -22,6 +23,12 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// 업로드된 파일(이미지 등) 정적 서빙
+// 실제 파일 경로: 프로젝트 루트의 uploads 디렉터리
+// 예: http://localhost:8080/uploads/1765680275595-84573369.png
+const uploadsPath = path.join(process.cwd(), "uploads");
+app.use("/uploads", express.static(uploadsPath));
 
 // app.use(express.json());   이 서버 전체를 json 전체로 통신하려고 했으나, 게시글에서는 form data를 사용하므로 주석
 
