@@ -46,7 +46,7 @@ export async function updateUserProfile(
 export async function getGrassData(userIdx) {
   return db
     .execute(
-      `SELECT g.grass_id, g.grass_date, g.user_idx, m.user_name, g.is_login, g.is_code, g.is_board, g.is_reply 
+      `SELECT g.grass_id, DATE_FORMAT(g.grass_date, '%Y-%m-%d') as grass_date, g.user_idx, m.user_name, g.is_login, g.is_code, g.is_board, g.is_reply 
        FROM grass g
        JOIN members m ON g.user_idx = m.user_idx
        WHERE g.user_idx = ? 
@@ -84,13 +84,57 @@ export async function getStudyArchiveImages(archiveId) {
     .then((result) => result[0]);
 }
 
+// 스크랩 생성
+export async function createScrap(boardId, userIdx) {
+  return db
+    .execute("INSERT INTO scrap (board_id, user_idx) VALUES (?, ?)", [
+      boardId,
+      userIdx,
+    ])
+    .then((result) => getScrapById(result[0].insertId));
+}
+
+// 스크랩 ID로 조회
+export async function getScrapById(scrapId) {
+  return db
+    .execute("SELECT * FROM scrap WHERE scrap_id = ?", [scrapId])
+    .then((result) => result[0][0]);
+}
+
+// 스크랩 존재 여부 확인 (중복 체크용)
+export async function getScrapByBoardAndUser(boardId, userIdx) {
+  return db
+    .execute("SELECT * FROM scrap WHERE board_id = ? AND user_idx = ?", [
+      boardId,
+      userIdx,
+    ])
+    .then((result) => result[0][0]);
+}
+
 // 사용자의 스크랩 조회
 export async function getScraps(userIdx) {
   return db
     .execute(
-      `SELECT s.scrap_id, s.board_id, s.user_idx, m.user_name, s.created_at 
+      `SELECT 
+        s.scrap_id, 
+        s.board_id, 
+        s.user_idx, 
+        m.user_name, 
+        s.created_at,
+        p.title,
+        p.type,
+        p.content,
+        p.user_idx as post_user_idx,
+        p.views,
+        p.is_solved,
+        p.main_image_id,
+        p.created_at as post_created_at,
+        p.updated_at as post_updated_at,
+        pm.user_name as post_user_name
        FROM scrap s
        JOIN members m ON s.user_idx = m.user_idx
+       JOIN posts p ON s.board_id = p.board_id
+       JOIN members pm ON p.user_idx = pm.user_idx
        WHERE s.user_idx = ? 
        ORDER BY s.created_at DESC`,
       [userIdx]

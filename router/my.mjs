@@ -31,6 +31,9 @@ router.put("/profile", validateProfileUpdate, myController.updateProfile);
 // GET /my/grass - 잔디/활동 데이터 조회
 router.get("/grass", myController.getGrass);
 
+// POST /my/scraps/:id - 스크랩 추가
+router.post("/scraps/:id", myController.createScrap);
+
 // GET /my/scraps - 스크랩 조회
 router.get("/scraps", myController.getScraps);
 
@@ -64,5 +67,15 @@ router.post("/schedule", validateSchedule, scheduleController.createSchedule);
 // - startDate, endDate: 날짜 범위 조회 (YYYY-MM-DD)
 // - 없으면: 전체 조회
 router.get("/schedule", scheduleController.getSchedules);
+
+// PUT /my/schedule/:id - 일정 수정
+router.put(
+  "/schedule/:id",
+  validateSchedule,
+  scheduleController.updateSchedule
+);
+
+// DELETE /my/schedule/:id - 일정 삭제
+router.delete("/schedule/:id", scheduleController.deleteSchedule);
 
 export default router;
