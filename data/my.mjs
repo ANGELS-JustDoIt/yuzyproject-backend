@@ -111,6 +111,14 @@ export async function getScrapByBoardAndUser(boardId, userIdx) {
     .then((result) => result[0][0]);
 }
 
+// 스크랩 삭제
+export async function deleteScrap(boardId, userIdx) {
+  return db.execute(
+    "DELETE FROM scrap WHERE board_id = ? AND user_idx = ?",
+    [boardId, userIdx]
+  );
+}
+
 // 사용자의 스크랩 조회
 export async function getScraps(userIdx) {
   return db

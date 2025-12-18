@@ -31,8 +31,8 @@ router.put("/profile", validateProfileUpdate, myController.updateProfile);
 // GET /my/grass - 잔디/활동 데이터 조회
 router.get("/grass", myController.getGrass);
 
-// POST /my/scraps/:id - 스크랩 추가
-router.post("/scraps/:id", myController.createScrap);
+// POST /my/scraps/:id - 스크랩 토글 (추가/취소)
+router.post("/scraps/:id", myController.toggleScrap);
 
 // GET /my/scraps - 스크랩 조회
 router.get("/scraps", myController.getScraps);

@@ -119,8 +119,8 @@ export async function getGrass(req, res, next) {
   }
 }
 
-// 스크랩 추가
-export async function createScrap(req, res, next) {
+// 스크랩 토글 (추가/취소)
+export async function toggleScrap(req, res, next) {
   try {
     const boardId = parseInt(req.params.id || req.body.boardId);
     const userIdx = req.userIdx;
@@ -137,36 +137,52 @@ export async function createScrap(req, res, next) {
       return res.status(404).json({ message: "포스트를 찾을 수 없습니다." });
     }
 
-    // 중복 스크랩 확인
+    // 이미 스크랩했는지 확인
     const existingScrap = await myRepository.getScrapByBoardAndUser(
       boardId,
       userIdx
     );
+
     if (existingScrap) {
-      return res.status(409).json({
-        message: "이미 스크랩한 포스트입니다.",
+      // 스크랩 취소
+      await myRepository.deleteScrap(boardId, userIdx);
+      res.status(200).json({
+        message: "스크랩이 취소되었습니다.",
+        isScrapped: false,
+      });
+    } else {
+      // 스크랩 추가
+      const scrap = await myRepository.createScrap(boardId, userIdx);
+      res.status(200).json({
+        message: "스크랩이 추가되었습니다.",
+        isScrapped: true,
+        scrap: toCamelCase(scrap),
       });
     }
-
-    // 스크랩 생성
-    const scrap = await myRepository.createScrap(boardId, userIdx);
-
-    res.status(201).json({
-      message: "스크랩이 성공적으로 추가되었습니다.",
-      scrap: toCamelCase(scrap),
-    });
   } catch (error) {
-    console.error("스크랩 추가 에러:", error);
+    console.error("스크랩 토글 에러:", error);
 
-    // 중복 키 에러 처리
+    // 중복 키 에러 처리 (동시 요청 시 발생할 수 있음)
     if (error.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({
-        message: "이미 스크랩한 포스트입니다.",
-      });
+      // 이미 스크랩된 상태이므로 취소 처리
+      try {
+        await myRepository.deleteScrap(
+          parseInt(req.params.id || req.body.boardId),
+          req.userIdx
+        );
+        return res.status(200).json({
+          message: "스크랩이 취소되었습니다.",
+          isScrapped: false,
+        });
+      } catch (deleteError) {
+        return res.status(409).json({
+          message: "이미 스크랩한 포스트입니다.",
+        });
+      }
     }
 
     res.status(500).json({
-      message: "스크랩 추가에 실패했습니다.",
+      message: "스크랩 처리에 실패했습니다.",
       error: error.message,
     });
   }
