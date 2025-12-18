@@ -61,11 +61,22 @@ export async function updateProfile(req, res, next) {
     const userIdx = req.userIdx;
     const { email, hope_job, password } = req.body;
 
+    // 업로드된 프로필 이미지가 있으면 URL 생성
+    // upload.mjs에서 uploads 디렉터리에 저장되고,
+    // app.mjs에서 /uploads 경로로 정적 서빙됨
+    let profile_image_url;
+    if (req.file && req.file.filename) {
+      profile_image_url = `/uploads/${req.file.filename}`;
+    }
+
     const updateData = {};
     if (email) updateData.email = email;
     if (hope_job !== undefined) updateData.hope_job = hope_job;
     if (password) {
       updateData.password = bcrypt.hashSync(password, config.bcrypt.saltRounds);
+    }
+    if (profile_image_url !== undefined) {
+      updateData.profile_image_url = profile_image_url;
     }
 
     const updatedProfile = await myRepository.updateUserProfile(

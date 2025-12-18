@@ -37,6 +37,9 @@ export const upload = multer({
 });
 // 단일 파일 업로드
 export const uploadSingle = upload.single("file");
+
+// 프로필 이미지 업로드 (필드명: profileImage)
+export const uploadProfileImage = upload.single("profileImage");
 // 여러 파일 업로드 (files 배열)
 export const uploadFiles = upload.array("files", 10); // 최대 10개
 // 메인 이미지와 첨부 파일 모두 처리

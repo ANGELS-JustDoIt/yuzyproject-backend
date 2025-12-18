@@ -1,5 +1,6 @@
 import express from "express";
 import { isAuth } from "../middleware/auth.mjs";
+import { uploadProfileImage } from "../middleware/upload.mjs";
 import * as myController from "../controller/my.mjs";
 import * as scheduleController from "../controller/schedule.mjs";
 import { body } from "express-validator";
@@ -25,8 +26,19 @@ const validateProfileUpdate = [
 // GET /my/profile - 사용자 프로필 및 통계 조회
 router.get("/profile", myController.getProfile);
 
-// PUT /my/profile - 사용자 프로필 업데이트
-router.put("/profile", validateProfileUpdate, myController.updateProfile);
+// PUT /my/profile - 사용자 프로필 업데이트 (텍스트 + 프로필 이미지)
+// Content-Type: multipart/form-data
+// 필드:
+// - email (optional)
+// - hope_job (optional)
+// - password (optional)
+// - profileImage (optional, file)
+router.put(
+  "/profile",
+  uploadProfileImage,
+  validateProfileUpdate,
+  myController.updateProfile
+);
 
 // GET /my/grass - 잔디/활동 데이터 조회
 router.get("/grass", myController.getGrass);
