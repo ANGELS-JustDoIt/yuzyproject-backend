@@ -90,4 +90,16 @@ router.put(
 // DELETE /my/schedule/:id - 일정 삭제
 router.delete("/schedule/:id", scheduleController.deleteSchedule);
 
+// 코드 분석 결과 저장 검증
+const validateArchive = [
+  body("rawResponse")
+    .notEmpty()
+    .withMessage("분석 결과(rawResponse)는 필수입니다."),
+  body("analysisText").optional().trim(),
+  validate,
+];
+
+// POST /my/archive - 코드 분석 결과 저장
+router.post("/archive", validateArchive, myController.createArchive);
+
 export default router;

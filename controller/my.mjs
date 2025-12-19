@@ -351,3 +351,57 @@ export async function deleteNotification(req, res, next) {
     });
   }
 }
+
+// 코드 분석 결과 저장 (공부 아카이브 생성)
+export async function createArchive(req, res, next) {
+  try {
+    const userIdx = req.userIdx;
+    const { analysisText, rawResponse } = req.body;
+
+    // 필수 필드 검증
+    if (!rawResponse) {
+      return res.status(400).json({
+        message: "분석 결과(rawResponse)는 필수입니다.",
+      });
+    }
+
+    // analysisText가 없으면 rawResponse에서 요약 생성 (선택적)
+    const finalAnalysisText =
+      analysisText ||
+      (typeof rawResponse === "string"
+        ? rawResponse.substring(0, 500)
+        : JSON.stringify(rawResponse).substring(0, 500));
+
+    // rawResponse를 JSON 문자열로 변환 (이미 문자열이면 그대로 사용)
+    const rawResponseStr =
+      typeof rawResponse === "string"
+        ? rawResponse
+        : JSON.stringify(rawResponse);
+
+    // 아카이브 생성
+    const archive = await myRepository.createStudyArchive(
+      userIdx,
+      finalAnalysisText,
+      rawResponseStr
+    );
+
+    // 잔디에 코드 분석 활동 기록
+    try {
+      await myRepository.recordCodeGrass(userIdx);
+    } catch (grassError) {
+      // 잔디 기록 실패해도 아카이브 생성은 성공 처리
+      console.error("잔디 기록 에러:", grassError);
+    }
+
+    res.status(201).json({
+      message: "코드 분석 결과가 성공적으로 저장되었습니다.",
+      archive: toCamelCase(archive),
+    });
+  } catch (error) {
+    console.error("아카이브 생성 에러:", error);
+    res.status(500).json({
+      message: "코드 분석 결과 저장에 실패했습니다.",
+      error: error.message,
+    });
+  }
+}

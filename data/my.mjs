@@ -84,6 +84,44 @@ export async function getStudyArchiveImages(archiveId) {
     .then((result) => result[0]);
 }
 
+// 공부 아카이브 생성 (코드 분석 결과 저장)
+export async function createStudyArchive(userIdx, analysisText, rawResponse) {
+  return db
+    .execute(
+      `INSERT INTO study_archive (user_idx, analysis_text, raw_response) 
+       VALUES (?, ?, ?)`,
+      [userIdx, analysisText, rawResponse]
+    )
+    .then((result) => {
+      // 생성된 archive_id로 조회하여 반환
+      return db
+        .execute(
+          `SELECT archive_id, user_idx, analysis_text, raw_response, created_at 
+           FROM study_archive 
+           WHERE archive_id = ?`,
+          [result[0].insertId]
+        )
+        .then((selectResult) => selectResult[0][0]);
+    });
+}
+
+// 잔디에 코드 분석 활동 기록
+// 같은 날 여러 번 코드 분석해도 한 번만 기록됨 (UNIQUE 제약조건으로 인해)
+export async function recordCodeGrass(userIdx) {
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD 형식
+
+  // INSERT 시도, 이미 기록이 있으면 UPDATE (is_code = 1로 설정)
+  // 같은 날 여러 번 코드 분석해도 안전하게 처리됨
+  return db
+    .execute(
+      `INSERT INTO grass (grass_date, user_idx, is_code) 
+       VALUES (?, ?, 1)
+       ON DUPLICATE KEY UPDATE is_code = 1`,
+      [today, userIdx]
+    )
+    .then((result) => result[0]);
+}
+
 // 스크랩 생성
 export async function createScrap(boardId, userIdx) {
   return db
