@@ -4,7 +4,7 @@ import { db } from "../db/database.mjs";
 export async function getUserProfile(userIdx) {
   return db
     .execute(
-      "SELECT user_idx, email, user_name, hope_job, profile_image_url, created_at FROM members WHERE user_idx = ?",
+      "SELECT user_idx, email, user_name, hope_job, created_at FROM members WHERE user_idx = ?",
       [userIdx]
     )
     .then((result) => result[0][0]);
@@ -13,7 +13,7 @@ export async function getUserProfile(userIdx) {
 // 사용자 프로필 업데이트
 export async function updateUserProfile(
   userIdx,
-  { email, hope_job, password, profile_image_url }
+  { email, hope_job, password }
 ) {
   const updates = [];
   const values = [];
@@ -29,10 +29,6 @@ export async function updateUserProfile(
   if (password) {
     updates.push("password = ?");
     values.push(password);
-  }
-  if (profile_image_url !== undefined) {
-    updates.push("profile_image_url = ?");
-    values.push(profile_image_url);
   }
 
   if (updates.length === 0) {
