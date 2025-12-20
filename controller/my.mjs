@@ -61,12 +61,11 @@ export async function updateProfile(req, res, next) {
     const userIdx = req.userIdx;
     const { user_name, hope_job, password } = req.body;
 
-    // 프로필 이미지 기능은 현재 데이터베이스 스키마에 없으므로 주석 처리
-    // 추후 members 테이블에 profile_image_url 컬럼 추가 시 활성화
-    // let profile_image_url;
-    // if (req.file && req.file.filename) {
-    //   profile_image_url = `/uploads/${req.file.filename}`;
-    // }
+    // 프로필 이미지 처리
+    let profile_image_url;
+    if (req.file && req.file.filename) {
+      profile_image_url = `/uploads/${req.file.filename}`;
+    }
 
     const updateData = {};
     if (user_name) updateData.user_name = user_name;
@@ -74,9 +73,9 @@ export async function updateProfile(req, res, next) {
     if (password) {
       updateData.password = bcrypt.hashSync(password, config.bcrypt.saltRounds);
     }
-    // if (profile_image_url !== undefined) {
-    //   updateData.profile_image_url = profile_image_url;
-    // }
+    if (profile_image_url !== undefined) {
+      updateData.profile_image_url = profile_image_url;
+    }
 
     const updatedProfile = await myRepository.updateUserProfile(
       userIdx,
