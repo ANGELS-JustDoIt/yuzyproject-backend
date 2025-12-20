@@ -13,7 +13,7 @@ router.use(isAuth);
 
 // 프로필 업데이트 검증
 const validateProfileUpdate = [
-  body("email").optional().trim().isEmail().withMessage("이메일 형식 확인"),
+  body("user_name").optional().trim().isLength({ min: 1, max: 100 }).withMessage("닉네임은 1-100자 사이여야 합니다"),
   body("hope_job").optional().trim(),
   body("password")
     .optional()

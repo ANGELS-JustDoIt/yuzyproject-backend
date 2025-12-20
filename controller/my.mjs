@@ -59,7 +59,7 @@ export async function getProfile(req, res, next) {
 export async function updateProfile(req, res, next) {
   try {
     const userIdx = req.userIdx;
-    const { email, hope_job, password } = req.body;
+    const { user_name, hope_job, password } = req.body;
 
     // 프로필 이미지 기능은 현재 데이터베이스 스키마에 없으므로 주석 처리
     // 추후 members 테이블에 profile_image_url 컬럼 추가 시 활성화
@@ -69,7 +69,7 @@ export async function updateProfile(req, res, next) {
     // }
 
     const updateData = {};
-    if (email) updateData.email = email;
+    if (user_name) updateData.user_name = user_name;
     if (hope_job !== undefined) updateData.hope_job = hope_job;
     if (password) {
       updateData.password = bcrypt.hashSync(password, config.bcrypt.saltRounds);

@@ -13,14 +13,14 @@ export async function getUserProfile(userIdx) {
 // 사용자 프로필 업데이트
 export async function updateUserProfile(
   userIdx,
-  { email, hope_job, password }
+  { user_name, hope_job, password }
 ) {
   const updates = [];
   const values = [];
 
-  if (email) {
-    updates.push("email = ?");
-    values.push(email);
+  if (user_name) {
+    updates.push("user_name = ?");
+    values.push(user_name);
   }
   if (hope_job !== undefined) {
     updates.push("hope_job = ?");
