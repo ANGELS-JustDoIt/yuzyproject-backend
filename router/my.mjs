@@ -90,6 +90,9 @@ router.put(
 // DELETE /my/schedule/:id - 일정 삭제
 router.delete("/schedule/:id", scheduleController.deleteSchedule);
 
+// GET /my/archives - 공부 아카이브 조회
+router.get("/archives", myController.getArchives);
+
 // 코드 분석 결과 저장 검증
 const validateArchive = [
   body("rawResponse")

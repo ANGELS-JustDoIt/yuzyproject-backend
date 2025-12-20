@@ -352,6 +352,30 @@ export async function deleteNotification(req, res, next) {
   }
 }
 
+// 공부 아카이브 조회
+export async function getArchives(req, res, next) {
+  try {
+    const userIdx = req.userIdx;
+    const archives = await myRepository.getStudyArchives(userIdx);
+
+    // 프론트엔드 호환성을 위해 user_name을 user_id로 매핑
+    const archivesWithUserId = archives.map((item) => ({
+      ...item,
+      user_id: item.user_name,
+    }));
+
+    res.status(200).json({
+      archives: toCamelCase(archivesWithUserId),
+    });
+  } catch (error) {
+    console.error("아카이브 조회 에러:", error);
+    res.status(500).json({
+      message: "아카이브 조회에 실패했습니다.",
+      error: error.message,
+    });
+  }
+}
+
 // 코드 분석 결과 저장 (공부 아카이브 생성)
 export async function createArchive(req, res, next) {
   try {
