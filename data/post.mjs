@@ -16,11 +16,11 @@ export async function create(
     .then((result) => getById(result[0].insertId));
 }
 
-// 글 번호(board_id)에 대한 포스트를 리턴 (user_name 포함)
+// 글 번호(board_id)에 대한 포스트를 리턴 (user_name, profile_image_url 포함)
 export async function getById(boardId) {
   return db
     .execute(
-      `select p.*, m.user_name 
+      `select p.*, m.user_name, m.profile_image_url 
        from posts p 
        left join members m on p.user_idx = m.user_idx 
        where p.board_id = ?`,
@@ -79,10 +79,10 @@ export async function countPosts({ type, keyword }) {
   return rows[0]?.total ?? 0;
 }
 
-// 게시글 목록 조회 (페이지네이션 + 타입/키워드 검색, user_name 포함)
+// 게시글 목록 조회 (페이지네이션 + 타입/키워드 검색, user_name, profile_image_url 포함)
 export async function getPosts({ page = 1, limit = 10, type, keyword }) {
   const offset = (page - 1) * limit;
-  let sql = `select p.*, m.user_name 
+  let sql = `select p.*, m.user_name, m.profile_image_url 
              from posts p 
              left join members m on p.user_idx = m.user_idx`;
   const params = [];
