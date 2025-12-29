@@ -10,18 +10,28 @@ export async function create(boardId, reply, userIdx, seq = 0) {
     .then((result) => getById(result[0].insertId));
 }
 
-// 댓글 ID로 조회
+// 댓글 ID로 조회 (사용자 정보 포함)
 export async function getById(replyId) {
   return db
-    .execute("select * from comments where reply_id = ?", [replyId])
+    .execute(
+      `SELECT c.*, m.user_name, m.profile_image_url 
+       FROM comments c
+       LEFT JOIN members m ON c.user_idx = m.user_idx
+       WHERE c.reply_id = ?`,
+      [replyId]
+    )
     .then((result) => result[0][0]);
 }
 
-// 게시글의 모든 댓글 조회 (seq 순서대로)
+// 게시글의 모든 댓글 조회 (seq 순서대로, 사용자 정보 포함)
 export async function getByBoardId(boardId) {
   return db
     .execute(
-      "select * from comments where board_id = ? order by seq asc, reply_id asc",
+      `SELECT c.*, m.user_name, m.profile_image_url 
+       FROM comments c
+       LEFT JOIN members m ON c.user_idx = m.user_idx
+       WHERE c.board_id = ? 
+       ORDER BY c.seq ASC, c.reply_id ASC`,
       [boardId]
     )
     .then((result) => result[0]);
@@ -48,10 +58,9 @@ export async function deleteById(replyId, userIdx) {
 // 게시글의 댓글 개수 조회
 export async function countByBoardId(boardId) {
   return db
-    .execute(
-      "select count(*) as count from comments where board_id = ?",
-      [boardId]
-    )
+    .execute("select count(*) as count from comments where board_id = ?", [
+      boardId,
+    ])
     .then((result) => result[0][0]?.count ?? 0);
 }
 
@@ -72,12 +81,14 @@ export async function selectComment(replyId, boardId, userIdx) {
     "update comments set is_selected = 1 where reply_id = ? and board_id = ?",
     [replyId, boardId]
   );
-  
+
   // 업데이트가 성공했는지 확인
   if (result[0].affectedRows === 0) {
-    throw new Error("댓글 채택에 실패했습니다. 댓글이 존재하지 않거나 이미 채택되었을 수 있습니다.");
+    throw new Error(
+      "댓글 채택에 실패했습니다. 댓글이 존재하지 않거나 이미 채택되었을 수 있습니다."
+    );
   }
-  
+
   return getById(replyId);
 }
 
@@ -98,4 +109,3 @@ export async function clearReplyGrassIfNoCommentsOnDate(userIdx, targetDate) {
     );
   }
 }
-
