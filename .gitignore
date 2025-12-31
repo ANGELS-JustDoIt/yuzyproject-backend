@@ -59,6 +59,3 @@ build/
 tmp/
 temp/
 *.tmp
-
-# upload files
-uploads/
