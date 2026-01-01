@@ -19,7 +19,7 @@ export const config = {
     saltRounds: parseInt(required("BCRYPT_SALT_ROUNDS", 12)),
   },
   host: {
-    port: parseInt(required("HOST_PORT", 9090)),
+    port: parseInt(process.env.PORT || process.env.HOST_PORT || 9090),
   },
   db: {
     host: required("DB_HOST"),
