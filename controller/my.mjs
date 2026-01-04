@@ -4,6 +4,7 @@ import * as fileRepository from "../data/file.mjs";
 import * as postRepository from "../data/post.mjs";
 import * as bcrypt from "bcrypt";
 import { config } from "../config.mjs";
+import fs from "fs";
 
 // snake_case를 camelCase로 변환하는 헬퍼 함수
 function toCamelCase(obj) {
@@ -59,12 +60,46 @@ export async function getProfile(req, res, next) {
 export async function updateProfile(req, res, next) {
   try {
     const userIdx = req.userIdx;
-    const { user_name, hope_job, password } = req.body;
+    const { user_name, hope_job, password, deleteProfileImage } = req.body;
+
+    // 기존 프로필 정보 조회 (이미지 삭제를 위해)
+    const existingProfile = await myRepository.getUserProfile(userIdx);
+    const oldProfileImageUrl = existingProfile?.profile_image_url;
 
     // 프로필 이미지 처리
     let profile_image_url;
-    if (req.file && req.file.filename) {
+    if (deleteProfileImage === "true" || deleteProfileImage === true) {
+      // 프로필 이미지 삭제 요청
+      profile_image_url = null;
+      
+      // 기존 프로필 이미지 파일 삭제
+      if (oldProfileImageUrl) {
+        const filePath = `.${oldProfileImageUrl}`; // /uploads/... -> ./uploads/...
+        if (fs.existsSync(filePath)) {
+          try {
+            fs.unlinkSync(filePath);
+          } catch (fileError) {
+            console.error(`프로필 이미지 삭제 실패: ${filePath}`, fileError);
+            // 파일 삭제 실패해도 DB 업데이트는 진행
+          }
+        }
+      }
+    } else if (req.file && req.file.filename) {
+      // 새 프로필 이미지 업로드
       profile_image_url = `/uploads/${req.file.filename}`;
+      
+      // 기존 프로필 이미지 파일 삭제 (새 이미지로 교체하는 경우)
+      if (oldProfileImageUrl) {
+        const filePath = `.${oldProfileImageUrl}`;
+        if (fs.existsSync(filePath)) {
+          try {
+            fs.unlinkSync(filePath);
+          } catch (fileError) {
+            console.error(`기존 프로필 이미지 삭제 실패: ${filePath}`, fileError);
+            // 파일 삭제 실패해도 새 이미지 업로드는 진행
+          }
+        }
+      }
     }
 
     const updateData = {};
