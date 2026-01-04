@@ -91,7 +91,17 @@ export async function createPost(req, res, next) {
 export async function updatePost(req, res, next) {
   try {
     const boardId = parseInt(req.params.id);
-    const { title, content, deleteFileIds } = req.body; // 삭제할 파일 ID 목록 추가
+    const { title, content } = req.body;
+    // deleteFileIds는 FormData에서 JSON 문자열로 전달될 수 있으므로 파싱
+    let deleteFileIds = req.body.deleteFileIds;
+    if (typeof deleteFileIds === "string") {
+      try {
+        deleteFileIds = JSON.parse(deleteFileIds);
+      } catch (parseError) {
+        console.error("deleteFileIds 파싱 실패:", parseError);
+        deleteFileIds = [];
+      }
+    }
     const userIdx = req.userIdx;
     if (!boardId || isNaN(boardId)) {
       return res
@@ -112,7 +122,11 @@ export async function updatePost(req, res, next) {
     }
 
     // 1. 삭제할 파일 처리 (요청 본문에 deleteFileIds가 있는 경우)
-    if (deleteFileIds && Array.isArray(deleteFileIds) && deleteFileIds.length > 0) {
+    if (
+      deleteFileIds &&
+      Array.isArray(deleteFileIds) &&
+      deleteFileIds.length > 0
+    ) {
       // 삭제할 파일 ID들을 숫자로 변환
       const fileIdsToDelete = deleteFileIds
         .map((id) => parseInt(id))
@@ -418,9 +432,7 @@ export async function deletePostFile(req, res, next) {
     }
 
     if (!fileKey || isNaN(fileKey)) {
-      return res
-        .status(400)
-        .json({ message: "유효하지 않은 파일 ID입니다." });
+      return res.status(400).json({ message: "유효하지 않은 파일 ID입니다." });
     }
 
     // 포스트 존재 및 소유권 확인
